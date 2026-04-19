@@ -1,39 +1,30 @@
 <script setup>
-  import { ref, onMounted, onUnmounted } from 'vue';
+  import { watch } from 'vue';
   import { useFetchApi } from './composables/useFetchApi';
+  import { usePolling } from './composables/usePolling';
 
   const props = defineProps({
     loginUrl: { type: String, default: null },
   });
 
-  const { fetchApi } = useFetchApi();
+  const { fetchApiToRef } = useFetchApi();
 
-  const getResult = ref(null);
-  const postResult = ref(null);
+  const { data: getResult, error: getError, fetchNow } = fetchApiToRef({ url: '/foo' });
+  const { data: postResult, error: postError } = fetchApiToRef({ url: '/foo', data: { id: 1 } });
 
   function handleError(err) {
-    if (err?.status === 401) window.location.href = props.loginUrl;
+    if (!err) return;
+    if (err?.status === 401) {
+      window.location.href = props.loginUrl;
+    } else {
+      console.error(err);
+    }
   }
 
-  function fetchGet() {
-    fetchApi({ url: '/foo' })
-      .then(data => getResult.value = data)
-      .catch(err => handleError(err));
-  }
+  watch(getError, handleError);
+  watch(postError, handleError);
 
-  function fetchPost() {
-    fetchApi({ url: '/foo', data: { id: 1 } })
-      .then(data => postResult.value = data)
-      .catch(err => handleError(err));
-  }
-
-  onMounted(() => {
-    fetchGet();
-    fetchPost();
-    var interval = setInterval(fetchGet, 5000);
-  });
-
-  onUnmounted(() => clearInterval(interval));
+  usePolling(fetchNow);
 </script>
 
 <template>

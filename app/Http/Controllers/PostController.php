@@ -40,7 +40,7 @@ class PostController extends Controller
         $user = $request->user();
         $post = new Post();
 
-        $post->title = $validated['title'];
+        $post->title = $validated['title'] ?? null;
         $post->content = $validated['content'];
         $post->user()->associate($user);
 
@@ -98,7 +98,7 @@ class PostController extends Controller
 
         Gate::authorize('update', $post);
 
-        $post->title = $validated['title'];
+        $post->title = $validated['title'] ?? null;
         $post->content = $validated['content'];
 
         $post->save();

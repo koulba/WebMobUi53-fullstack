@@ -9,7 +9,7 @@ class ApiFooController extends Controller
 {
     public function show()
     {
-        return response()->json(['foo' => 'bar']);
+        return response()->json(['foo' => 'bar1']);
     }
 
     public function store(Request $request)

@@ -83,7 +83,7 @@ export function useFetchApi(baseUrl = null, additionalHeaders = {}) {
           })
           .catch(() => {
             return responseClone.text()
-              .then(text => {
+              .then(() => {
                 reject({
                   status: response.status,
                   statusText: 'Error parsing response body as JSON',
@@ -119,17 +119,28 @@ export function useFetchApi(baseUrl = null, additionalHeaders = {}) {
    * @param {string} [options.method=null] - The method to use (GET, POST, PUT, DELETE, etc.)
    * if not specified, it will be GET if data is null, POST otherwise
    * @param {object} [options.headers={}] - The additional headers to send (if any)
+   * @param {boolean} [options.immediate=true] - Whether to fetch immediately on call
+   * if false, the fetch will only be triggered when fetchNow() is called manually
    * @returns {Object} The refs with the data, the error and the loading state
    * @property {Ref} data - The data fetched
    * @property {Ref} error - The error if any
    * @property {Ref} loading - The loading state
+   * @property {Function} fetchNow - Function to (re)trigger the fetch manually
    */
-  function fetchApiToRef(options) {
+  function fetchApiToRef({ immediate = true, ...options }) {
     const data = ref(null);
     const error = ref(null);
-    const loading = ref(true);
+    const loading = ref(immediate);
 
-    try {
+    if (options?.url == null || typeof options?.url !== 'string') {
+      error.value = { status: 0, statusText: 'The URL must be a string.', data: null };
+      loading.value = false;
+      return { data, error, loading };
+    }
+
+    function fetchNow() {
+      loading.value = true;
+      error.value = null;
       fetchApi(options)
         .then(res => {
           data.value = res;
@@ -139,12 +150,11 @@ export function useFetchApi(baseUrl = null, additionalHeaders = {}) {
           error.value = err;
           loading.value = false;
         });
-    } catch (err) {
-      error.value = err;
-      loading.value = false;
     }
 
-    return { data, error, loading };
+    if (immediate) fetchNow();
+
+    return { data, error, loading, fetchNow };
   }
 
   return { fetchApi, fetchApiToRef };
