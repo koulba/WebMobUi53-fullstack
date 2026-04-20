@@ -64,6 +64,16 @@ couvrant l'ensemble des usages, soit plusieurs applications Vue.js distinctes (p
 le dashboard et une pour la consultation, le vote et la visualisation des résultats), à condition
 que l'ensemble reste cohérent, maintenable et bien intégré au backend.
 
+Le système d'authentification est déjà en place. Il est externe à l'application Vue.js, hors du
+périmètre du travail, et doit être conservé en l'état. Le frontend demandé doit s'intégrer à ce
+mécanisme existant, sans le redévelopper ni le modifier.
+
+Un fichier `README_FRONT.md` est fourni à la racine du projet pour documenter l'intégration
+frontend existante. Des exemples de fetch vers l'API, d'intégration de plusieurs applications Vue
+et d'eager loading sont déjà disponibles dans le code fourni, notamment dans les vues et fichiers
+liés aux sondages ainsi que dans certains contrôleurs API. Ces exemples peuvent servir de base de
+travail et de référence.
+
 Les modèles sont déjà fournis. Vous devez construire autour de ceux-ci les fonctionnalités utiles au
 frontend. Les modèles existants permettent naturellement de représenter plusieurs choix pour un même sondage.
 Par conséquent, lorsqu'un sondage est configuré en choix unique, l'unicité du vote doit être
