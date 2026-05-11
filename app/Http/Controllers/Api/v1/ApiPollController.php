@@ -77,6 +77,63 @@ class ApiPollController extends Controller
     }
 
     /**
+     * Update an existing poll (only allowed while it is still a draft).
+     */
+    public function update(Request $request, int $id)
+    {
+        $poll = Poll::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if (!$poll) {
+            return response()->json(['message' => 'Poll not found.'], 404);
+        }
+
+        if (!$poll->is_draft) {
+            return response()->json(['message' => 'Cannot edit a poll that has been started.'], 422);
+        }
+
+        $validated = $request->validate([
+            'title' => 'nullable|string|max:255',
+            'question' => 'sometimes|required|string|max:255',
+            'allow_multiple_choices' => 'sometimes|boolean',
+            'allow_vote_change' => 'sometimes|boolean',
+            'results_public' => 'sometimes|boolean',
+            'duration' => 'nullable|integer|min:1',
+        ]);
+
+        $poll->update($validated);
+
+        return $poll->load('options');
+    }
+
+    /**
+     * Start a draft poll: set is_draft=false, started_at=now, ends_at if duration set.
+     */
+    public function start(Request $request, int $id)
+    {
+        $poll = Poll::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if (!$poll) {
+            return response()->json(['message' => 'Poll not found.'], 404);
+        }
+
+        if (!$poll->is_draft) {
+            return response()->json(['message' => 'Poll already started.'], 422);
+        }
+
+        $poll->update([
+            'is_draft' => false,
+            'started_at' => now(),
+            'ends_at' => $poll->duration ? now()->addSeconds($poll->duration) : null,
+        ]);
+
+        return $poll->load('options');
+    }
+
+    /**
      * Remove the specified poll.
      */
     public function remove(Request $request, int $id)
