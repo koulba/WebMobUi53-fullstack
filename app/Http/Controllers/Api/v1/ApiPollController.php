@@ -224,6 +224,56 @@ class ApiPollController extends Controller
     }
 
     /**
+     * Record a vote for the authenticated user on a poll identified by its token.
+     */
+    public function vote(Request $request, string $token)
+    {
+        $poll = Poll::where('secret_token', $token)->first();
+
+        if (!$poll) {
+            return response()->json(['message' => 'Poll not found.'], 404);
+        }
+
+        if ($poll->is_draft) {
+            return response()->json(['message' => 'Poll has not started.'], 422);
+        }
+
+        if ($poll->ends_at && $poll->ends_at->isPast()) {
+            return response()->json(['message' => 'Poll has ended.'], 422);
+        }
+
+        $validated = $request->validate([
+            'option_ids' => 'required|array|min:1',
+            'option_ids.*' => 'integer|distinct',
+        ]);
+
+        if (!$poll->allow_multiple_choices && count($validated['option_ids']) > 1) {
+            return response()->json(['message' => 'This poll only accepts a single choice.'], 422);
+        }
+
+        $validOptionIds = $poll->options()->pluck('id')->all();
+        $invalid = array_diff($validated['option_ids'], $validOptionIds);
+
+        if (!empty($invalid)) {
+            return response()->json(['message' => 'Invalid option(s) submitted.'], 422);
+        }
+
+        $alreadyVoted = $poll->votes()->where('user_id', $request->user()->id)->exists();
+        if ($alreadyVoted) {
+            return response()->json(['message' => 'You have already voted.'], 409);
+        }
+
+        foreach ($validated['option_ids'] as $optionId) {
+            $poll->votes()->create([
+                'user_id' => $request->user()->id,
+                'poll_option_id' => $optionId,
+            ]);
+        }
+
+        return response()->json(['message' => 'Vote recorded.'], 201);
+    }
+
+    /**
      * Remove the specified poll.
      */
     public function remove(Request $request, int $id)
