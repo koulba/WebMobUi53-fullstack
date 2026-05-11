@@ -274,6 +274,42 @@ class ApiPollController extends Controller
     }
 
     /**
+     * Return live results for a poll, gated by results_public flag or ownership.
+     */
+    public function results(Request $request, string $token)
+    {
+        $poll = Poll::with(['options' => function ($query) {
+            $query->withCount('votes');
+        }])->where('secret_token', $token)->first();
+
+        if (!$poll) {
+            return response()->json(['message' => 'Poll not found.'], 404);
+        }
+
+        $user = $request->user();
+        $isOwner = $user && $user->id === $poll->user_id;
+
+        if (!$poll->results_public && !$isOwner) {
+            return response()->json(['message' => 'Results are not public.'], 403);
+        }
+
+        return [
+            'poll_id' => $poll->id,
+            'question' => $poll->question,
+            'allow_multiple_choices' => $poll->allow_multiple_choices,
+            'started_at' => $poll->started_at,
+            'ends_at' => $poll->ends_at,
+            'is_ended' => $poll->ends_at && $poll->ends_at->isPast(),
+            'total_votes' => $poll->votes()->count(),
+            'options' => $poll->options->map(fn ($o) => [
+                'id' => $o->id,
+                'label' => $o->label,
+                'votes_count' => $o->votes_count,
+            ]),
+        ];
+    }
+
+    /**
      * Remove the specified poll.
      */
     public function remove(Request $request, int $id)
