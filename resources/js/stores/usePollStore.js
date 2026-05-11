@@ -32,9 +32,38 @@ export function usePollStore() {
     return updated;
   }
 
+  async function updatePoll(id, payload) {
+    const updated = await fetchApi({ url: `polls/${id}`, method: 'PUT', data: payload });
+    if (updated) replaceInList(updated);
+    return updated;
+  }
+
+  async function addOption(pollId, label) {
+    return await fetchApi({ url: `polls/${pollId}/options`, method: 'POST', data: { label } });
+  }
+
+  async function renameOption(pollId, optionId, label) {
+    return await fetchApi({ url: `polls/${pollId}/options/${optionId}`, method: 'PUT', data: { label } });
+  }
+
+  async function removeOption(pollId, optionId) {
+    return await fetchApi({ url: `polls/${pollId}/options/${optionId}`, method: 'DELETE' });
+  }
+
   function replaceInList(poll) {
     polls.value = polls.value.map(p => p.id === poll.id ? poll : p);
   }
 
-  return { polls, setPolls, loadPolls, createPoll, deletePoll, startPoll };
+  return {
+    polls,
+    setPolls,
+    loadPolls,
+    createPoll,
+    deletePoll,
+    startPoll,
+    updatePoll,
+    addOption,
+    renameOption,
+    removeOption,
+  };
 }
