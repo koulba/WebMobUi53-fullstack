@@ -75,55 +75,93 @@
 </script>
 
 <template>
-  <form class="border rounded p-4 space-y-3" @submit.prevent="submit">
-    <h2 class="text-lg font-semibold">Nouveau sondage</h2>
+  <form
+    class="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 space-y-4"
+    @submit.prevent="submit"
+  >
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Nouveau sondage</h2>
 
     <div>
-      <label class="block text-sm font-medium">Titre (optionnel)</label>
-      <input v-model="title" type="text" class="w-full border rounded px-2 py-1" maxlength="255" />
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Titre (optionnel)</label>
+      <input
+        v-model="title"
+        type="text"
+        maxlength="255"
+        class="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+      />
     </div>
 
     <div>
-      <label class="block text-sm font-medium">Question *</label>
-      <input v-model="question" type="text" class="w-full border rounded px-2 py-1" maxlength="255" required />
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Question *</label>
+      <input
+        v-model="question"
+        type="text"
+        maxlength="255"
+        required
+        class="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+      />
     </div>
 
     <div>
-      <label class="block text-sm font-medium">Options *</label>
-      <div v-for="(opt, i) in options" :key="i" class="flex gap-2 mb-1">
-        <input v-model="options[i]" type="text" class="flex-1 border rounded px-2 py-1" :placeholder="`Option ${i + 1}`" maxlength="255" />
-        <button type="button" class="px-2 text-sm" :disabled="options.length <= 2" @click="removeOption(i)">×</button>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Options *</label>
+      <div v-for="(opt, i) in options" :key="i" class="flex gap-2 mt-1">
+        <input
+          v-model="options[i]"
+          type="text"
+          maxlength="255"
+          :placeholder="`Option ${i + 1}`"
+          class="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+        />
+        <button
+          type="button"
+          class="px-3 rounded-md border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-slate-700"
+          :disabled="options.length <= 2"
+          @click="removeOption(i)"
+        >×</button>
       </div>
-      <button type="button" class="text-sm underline" @click="addOption">+ Ajouter une option</button>
+      <button
+        type="button"
+        class="mt-2 text-sm text-teal-700 dark:text-teal-400 hover:underline"
+        @click="addOption"
+      >
+        + Ajouter une option
+      </button>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-      <label class="flex items-center gap-2">
-        <input v-model="allowMultiple" type="checkbox" /> Choix multiples
-      </label>
-      <label class="flex items-center gap-2">
-        <input v-model="resultsPublic" type="checkbox" /> Résultats publics
-      </label>
-      <label class="flex items-center gap-2">
-        <input v-model="allowVoteChange" type="checkbox" /> Vote modifiable
-      </label>
-      <label class="flex items-center gap-2">
-        <input v-model="startNow" type="checkbox" /> Démarrer immédiatement
-      </label>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700 dark:text-gray-300">
+      <label class="flex items-center gap-2"><input v-model="allowMultiple" type="checkbox" class="rounded" /> Choix multiples</label>
+      <label class="flex items-center gap-2"><input v-model="resultsPublic" type="checkbox" class="rounded" /> Résultats publics</label>
+      <label class="flex items-center gap-2"><input v-model="allowVoteChange" type="checkbox" class="rounded" /> Vote modifiable</label>
+      <label class="flex items-center gap-2"><input v-model="startNow" type="checkbox" class="rounded" /> Démarrer immédiatement</label>
     </div>
 
     <div>
-      <label class="block text-sm font-medium">Durée (minutes, optionnel)</label>
-      <input v-model.number="durationMinutes" type="number" min="1" class="w-full border rounded px-2 py-1" />
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Durée (minutes, optionnel)</label>
+      <input
+        v-model.number="durationMinutes"
+        type="number"
+        min="1"
+        class="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+      />
     </div>
 
-    <p v-if="errors.form" class="text-red-600 text-sm">{{ errors.form }}</p>
+    <p v-if="errors.form" class="text-sm text-red-600 dark:text-red-400">{{ errors.form }}</p>
 
-    <div class="flex gap-2">
-      <button type="submit" :disabled="!canSubmit || submitting" class="bg-blue-600 text-white px-3 py-1 rounded disabled:opacity-50">
+    <div class="flex gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+      <button
+        type="submit"
+        :disabled="!canSubmit || submitting"
+        class="bg-teal-600 dark:bg-purple-900 text-white px-4 py-2 rounded-md hover:bg-teal-700 dark:hover:bg-purple-800 disabled:opacity-50 transition"
+      >
         {{ submitting ? 'Création…' : 'Créer' }}
       </button>
-      <button type="button" class="px-3 py-1 rounded border" @click="emit('cancel')">Annuler</button>
+      <button
+        type="button"
+        class="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition"
+        @click="emit('cancel')"
+      >
+        Annuler
+      </button>
     </div>
   </form>
 </template>
