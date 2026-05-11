@@ -1,6 +1,8 @@
 <script setup>
   import { ref, computed, onMounted } from 'vue';
   import { useFetchApi } from './composables/useFetchApi';
+  import { usePolling } from './composables/usePolling';
+  import PollResultsChart from './components/PollResultsChart.vue';
 
   const props = defineProps({
     token: { type: String, required: true },
@@ -11,6 +13,7 @@
   const { fetchApi } = useFetchApi();
 
   const poll = ref(null);
+  const results = ref(null);
   const loading = ref(true);
   const error = ref(null);
   const submitting = ref(false);
@@ -18,9 +21,10 @@
   const justVoted = ref(false);
 
   const isDraft = computed(() => !!poll.value?.is_draft);
-  const isEnded = computed(() =>
-    !!poll.value?.ends_at && new Date(poll.value.ends_at) < new Date()
-  );
+  const isEnded = computed(() => {
+    if (results.value?.is_ended) return true;
+    return !!poll.value?.ends_at && new Date(poll.value.ends_at) < new Date();
+  });
   const hasVoted = computed(() => !!poll.value?.user_has_voted || justVoted.value);
   const canSeeResults = computed(() => !!(poll.value?.results_public || poll.value?.is_owner));
   const canVote = computed(() =>
@@ -42,7 +46,22 @@
     }
   }
 
-  onMounted(loadPoll);
+  async function loadResults() {
+    if (!poll.value || !canSeeResults.value) return;
+    try {
+      const data = await fetchApi({ url: `polls/${props.token}/results` });
+      results.value = data;
+    } catch (e) {
+      // Silent: results may be temporarily unavailable, the poll page still works.
+    }
+  }
+
+  onMounted(async () => {
+    await loadPoll();
+    await loadResults();
+  });
+
+  usePolling(loadResults, 5000);
 
   function toggleOption(id) {
     if (poll.value.allow_multiple_choices) {
@@ -70,6 +89,7 @@
       justVoted.value = true;
       selectedIds.value = [];
       await loadPoll();
+      await loadResults();
     } catch (e) {
       error.value = e?.data?.message || 'Erreur lors du vote.';
     } finally {
@@ -129,16 +149,21 @@
         </button>
       </form>
 
-      <section v-if="canSeeResults" class="mt-6 pt-4 border-t">
-        <h2 class="font-semibold mb-2">Résultats</h2>
-        <ul class="space-y-1">
-          <li v-for="opt in poll.options" :key="opt.id" class="text-sm">
-            {{ opt.label }} — {{ opt.votes_count }} vote{{ opt.votes_count > 1 ? 's' : '' }}
+      <section v-if="canSeeResults && results" class="mt-6 pt-4 border-t">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="font-semibold">Résultats en direct</h2>
+          <span class="text-xs text-gray-500">{{ results.total_votes }} vote{{ results.total_votes > 1 ? 's' : '' }}</span>
+        </div>
+        <PollResultsChart :options="results.options" />
+        <ul class="mt-3 space-y-1 text-sm">
+          <li v-for="opt in results.options" :key="opt.id" class="flex justify-between">
+            <span>{{ opt.label }}</span>
+            <span class="text-gray-600">{{ opt.votes_count }}</span>
           </li>
         </ul>
       </section>
 
-      <p v-else-if="hasVoted || isEnded" class="mt-4 text-sm text-gray-500">
+      <p v-else-if="(hasVoted || isEnded) && !canSeeResults" class="mt-4 text-sm text-gray-500">
         Les résultats de ce sondage ne sont pas publics.
       </p>
     </div>
