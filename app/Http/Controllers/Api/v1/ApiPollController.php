@@ -62,20 +62,28 @@ class ApiPollController extends Controller
 
     /**
      * Display the specified poll by its secret token.
+     * Vote counts are only exposed when the viewer is allowed to see results.
      */
     public function show(Request $request, string $token)
     {
-        $poll = Poll::with(['options' => function ($query) {
-            $query->withCount('votes');
-        }])->where('secret_token', $token)->first();
+        $poll = Poll::where('secret_token', $token)->first();
 
         if (!$poll) {
             return response()->json(['message' => 'Poll not found.'], 404);
         }
 
         $user = $request->user();
+        $isOwner = $user && $user->id === $poll->user_id;
+        $canSeeResults = $poll->results_public || $isOwner;
+
+        if ($canSeeResults) {
+            $poll->load(['options' => fn ($query) => $query->withCount('votes')]);
+        } else {
+            $poll->load('options');
+        }
+
         $payload = $poll->toArray();
-        $payload['is_owner'] = $user && $user->id === $poll->user_id;
+        $payload['is_owner'] = $isOwner;
         $payload['user_has_voted'] = $user
             ? $poll->votes()->where('user_id', $user->id)->exists()
             : false;
