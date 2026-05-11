@@ -134,6 +134,96 @@ class ApiPollController extends Controller
     }
 
     /**
+     * Add a new option to a draft poll.
+     */
+    public function addOption(Request $request, int $id)
+    {
+        $poll = Poll::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if (!$poll) {
+            return response()->json(['message' => 'Poll not found.'], 404);
+        }
+
+        if (!$poll->is_draft) {
+            return response()->json(['message' => 'Cannot edit options of a started poll.'], 422);
+        }
+
+        $validated = $request->validate([
+            'label' => 'required|string|max:255',
+        ]);
+
+        $option = $poll->options()->create(['label' => $validated['label']]);
+
+        return response()->json($option, 201);
+    }
+
+    /**
+     * Update an option label on a draft poll.
+     */
+    public function updateOption(Request $request, int $id, int $optionId)
+    {
+        $poll = Poll::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if (!$poll) {
+            return response()->json(['message' => 'Poll not found.'], 404);
+        }
+
+        if (!$poll->is_draft) {
+            return response()->json(['message' => 'Cannot edit options of a started poll.'], 422);
+        }
+
+        $option = $poll->options()->where('id', $optionId)->first();
+
+        if (!$option) {
+            return response()->json(['message' => 'Option not found.'], 404);
+        }
+
+        $validated = $request->validate([
+            'label' => 'required|string|max:255',
+        ]);
+
+        $option->update(['label' => $validated['label']]);
+
+        return $option;
+    }
+
+    /**
+     * Delete an option from a draft poll (must keep at least 2 options).
+     */
+    public function deleteOption(Request $request, int $id, int $optionId)
+    {
+        $poll = Poll::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if (!$poll) {
+            return response()->json(['message' => 'Poll not found.'], 404);
+        }
+
+        if (!$poll->is_draft) {
+            return response()->json(['message' => 'Cannot edit options of a started poll.'], 422);
+        }
+
+        if ($poll->options()->count() <= 2) {
+            return response()->json(['message' => 'A poll must keep at least 2 options.'], 422);
+        }
+
+        $option = $poll->options()->where('id', $optionId)->first();
+
+        if (!$option) {
+            return response()->json(['message' => 'Option not found.'], 404);
+        }
+
+        $option->delete();
+
+        return response()->json(['message' => 'success'], 200);
+    }
+
+    /**
      * Remove the specified poll.
      */
     public function remove(Request $request, int $id)
