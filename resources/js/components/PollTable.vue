@@ -1,6 +1,8 @@
 <script setup>
-  import { ref } from 'vue';
+  import { ref, computed } from 'vue';
   import { usePollStore } from '@/stores/usePollStore';
+
+  const emit = defineEmits(['edit']);
 
   const { polls, deletePoll, startPoll } = usePollStore();
   const copiedId = ref(null);
@@ -29,63 +31,100 @@
     await startPoll(id);
   }
 
-  function statusLabel(poll) {
-    if (poll.is_draft) return 'Brouillon';
-    if (poll.ends_at && new Date(poll.ends_at) < new Date()) return 'Terminé';
-    return 'En cours';
+  function pollStatus(poll) {
+    if (poll.is_draft) return 'draft';
+    if (poll.ends_at && new Date(poll.ends_at) < new Date()) return 'ended';
+    return 'live';
   }
+
+  const statusStyles = {
+    draft: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+    live: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-800 dark:text-emerald-200',
+    ended: 'bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-200',
+  };
+
+  const statusLabels = {
+    draft: 'Brouillon',
+    live: 'En cours',
+    ended: 'Terminé',
+  };
 </script>
 
 <template>
-  <p v-if="polls.length === 0" class="text-gray-500">Aucun sondage.</p>
+  <div class="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
+    <p v-if="polls.length === 0" class="text-center text-gray-500 dark:text-gray-400 py-6">
+      Aucun sondage pour l'instant.
+    </p>
 
-  <div v-else class="overflow-x-auto">
-    <table class="w-full border-collapse text-left text-sm">
-      <thead>
-        <tr class="bg-gray-100">
-          <th class="border px-3 py-2">Question</th>
-          <th class="border px-3 py-2">État</th>
-          <th class="border px-3 py-2">Choix</th>
-          <th class="border px-3 py-2">Résultats</th>
-          <th class="border px-3 py-2">Fin</th>
-          <th class="border px-3 py-2">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="poll in polls" :key="poll.id">
-          <td class="border px-3 py-2">
-            <div class="font-medium">{{ poll.question }}</div>
-            <div v-if="poll.title" class="text-xs text-gray-500">{{ poll.title }}</div>
-          </td>
-          <td class="border px-3 py-2">{{ statusLabel(poll) }}</td>
-          <td class="border px-3 py-2">{{ poll.allow_multiple_choices ? 'Multiples' : 'Unique' }}</td>
-          <td class="border px-3 py-2">{{ poll.results_public ? 'Publics' : 'Privés' }}</td>
-          <td class="border px-3 py-2">{{ poll.ends_at || '—' }}</td>
-          <td class="border px-3 py-2">
-            <div class="flex flex-wrap gap-1">
-              <button v-if="poll.is_draft" class="btn-start" @click="onStart(poll.id)">Démarrer</button>
-              <button class="btn-copy" @click="copyLink(poll)">
-                {{ copiedId === poll.id ? 'Copié !' : 'Copier lien' }}
-              </button>
-              <button class="btn-delete" @click="onDelete(poll.id)">Supp.</button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div v-else class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+            <th class="px-3 py-2">Question</th>
+            <th class="px-3 py-2">État</th>
+            <th class="px-3 py-2">Choix</th>
+            <th class="px-3 py-2">Résultats</th>
+            <th class="px-3 py-2">Fin</th>
+            <th class="px-3 py-2 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          <tr
+            v-for="poll in polls"
+            :key="poll.id"
+            class="hover:bg-gray-50 dark:hover:bg-slate-700/40"
+          >
+            <td class="px-3 py-3">
+              <div class="font-medium text-gray-900 dark:text-white">{{ poll.question }}</div>
+              <div v-if="poll.title" class="text-xs text-gray-500 dark:text-gray-400">{{ poll.title }}</div>
+            </td>
+            <td class="px-3 py-3">
+              <span :class="['inline-block px-2 py-0.5 rounded-full text-xs font-medium', statusStyles[pollStatus(poll)]]">
+                {{ statusLabels[pollStatus(poll)] }}
+              </span>
+            </td>
+            <td class="px-3 py-3 text-gray-700 dark:text-gray-300">
+              {{ poll.allow_multiple_choices ? 'Multiples' : 'Unique' }}
+            </td>
+            <td class="px-3 py-3 text-gray-700 dark:text-gray-300">
+              {{ poll.results_public ? 'Publics' : 'Privés' }}
+            </td>
+            <td class="px-3 py-3 text-gray-500 dark:text-gray-400 text-xs">
+              {{ poll.ends_at || '—' }}
+            </td>
+            <td class="px-3 py-3">
+              <div class="flex flex-wrap gap-1 justify-end">
+                <button
+                  v-if="poll.is_draft"
+                  class="px-3 py-1 rounded-md text-xs font-medium bg-amber-500 text-white hover:bg-amber-600 transition"
+                  @click="emit('edit', poll)"
+                >
+                  Éditer
+                </button>
+                <button
+                  v-if="poll.is_draft"
+                  class="px-3 py-1 rounded-md text-xs font-medium bg-teal-600 dark:bg-purple-900 text-white hover:bg-teal-700 dark:hover:bg-purple-800 transition"
+                  @click="onStart(poll.id)"
+                >
+                  Démarrer
+                </button>
+                <button
+                  class="px-3 py-1 rounded-md text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition"
+                  @click="copyLink(poll)"
+                >
+                  {{ copiedId === poll.id ? 'Copié !' : 'Copier lien' }}
+                </button>
+                <button
+                  class="px-3 py-1 rounded-md text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition"
+                  @click="onDelete(poll.id)"
+                >
+                  Supp.
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
-
-<style scoped>
-  button {
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border: none;
-    border-radius: 0.25rem;
-    cursor: pointer;
-    font-size: 0.8rem;
-  }
-  .btn-start { background-color: #2563eb; }
-  .btn-copy { background-color: #6b7280; }
-  .btn-delete { background-color: #e3342f; }
-</style>
